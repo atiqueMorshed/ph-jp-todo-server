@@ -6,18 +6,13 @@ import cors from 'cors';
 const app = express();
 
 // Vars
-const port = process.env.PORT || 5001;
+const port = process.env.PORT;
 
 const uri = `mongodb+srv://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWORD}@cluster0.umt6y.mongodb.net/?retryWrites=true&w=majority`;
 
 // Middleware
 app.use(express.json());
 app.use(cors());
-const delay = (req, res, next) => {
-  setTimeout(() => {
-    next();
-  }, 1000);
-};
 
 // Mongo API
 const client = new MongoClient(uri, {
