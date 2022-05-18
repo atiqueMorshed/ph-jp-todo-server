@@ -13,10 +13,11 @@ const uri = `mongodb+srv://${process.env.MONGO_USERNAME}:${process.env.MONGO_PAS
 // Middleware
 app.use(express.json());
 app.use(cors());
-
-app.get('/', (req, res) => {
-  res.send('OK');
-});
+const delay = (req, res, next) => {
+  setTimeout(() => {
+    next();
+  }, 1000);
+};
 
 // Mongo API
 const client = new MongoClient(uri, {
@@ -90,6 +91,31 @@ const run = async () => {
           return res
             .status(404)
             .send({ message: 'No task with the ID was found.' });
+      } catch (error) {
+        res
+          .status(503)
+          .send({ message: error?.message || 'Failed to delete task.' });
+      }
+    });
+
+    // Updates task completion status.
+    app.put('/api/task', async (req, res) => {
+      const { id, completed } = req.body?.data;
+      if (!id || typeof completed !== 'boolean') {
+        return res
+          .status(400)
+          .send({ message: 'Task ID or status not found.' });
+      }
+      if (!ObjectId.isValid(id)) {
+        return res.status(406).send({ message: 'Invalid Task ID.' });
+      }
+
+      try {
+        let query = { _id: ObjectId(id) };
+        const result = await taskCollection.findOneAndUpdate(query, {
+          $set: { completed: completed },
+        });
+        return res.status(200).send(result);
       } catch (error) {
         res
           .status(503)
