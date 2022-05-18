@@ -31,8 +31,27 @@ const run = async () => {
     const taskCollection = client.db('whatTODO').collection('task');
     console.log('DATABSE CONNECTION SUCCESSFUL.');
 
+    // Gets all tasks of a user
+    app.get('/api/task', async (req, res) => {
+      const { email } = req.query;
+      if (!email) {
+        return res.status(400).send({ message: 'User email not found.' });
+      }
+      try {
+        const query = { email };
+        const cursor = taskCollection.find(query).sort({ insertedAt: -1 });
+        const tasks = await cursor.toArray();
+
+        return res.status(200).send(tasks);
+      } catch (error) {
+        res
+          .status(503)
+          .send({ message: error?.message || 'Failed to get tasks.' });
+      }
+    });
+
     // Adds a new task.
-    app.post('/api/addTask', async (req, res) => {
+    app.post('/api/task', async (req, res) => {
       const { name, description, email } = req.body?.task;
       if (!name || !description || !email) {
         return res.status(400).send({ message: 'All fields are required.' });
@@ -50,6 +69,31 @@ const run = async () => {
         res
           .status(503)
           .send({ message: error?.message || 'Failed to add task.' });
+      }
+    });
+
+    // Deletes a task.
+    app.delete('/api/task', async (req, res) => {
+      const { id } = req.body;
+      if (!id) {
+        return res.status(400).send({ message: 'Task ID not found.' });
+      }
+      if (!ObjectId.isValid(id)) {
+        return res.status(406).send({ message: 'Invalid Task ID.' });
+      }
+
+      try {
+        let query = { _id: ObjectId(id) };
+        const result = await taskCollection.deleteOne(query);
+        if (result.deletedCount === 1) return res.status(200).send({ result });
+        else
+          return res
+            .status(404)
+            .send({ message: 'No task with the ID was found.' });
+      } catch (error) {
+        res
+          .status(503)
+          .send({ message: error?.message || 'Failed to delete task.' });
       }
     });
   } finally {
